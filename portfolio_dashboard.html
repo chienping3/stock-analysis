@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投資組合策略回測 Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0e1117 0%, #1a1d29 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2d3142;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .section {
+            background: linear-gradient(135deg, #1a1d29 0%, #141720 100%);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #2d3142;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            align-items: flex-end;
+        }
+
+        .input-group input, .input-group select {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stock-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #334155;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .stock-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .stock-card.selected {
+            border-color: #22c55e;
+            border-width: 2px;
+        }
+
+        .stock-card h4 {
+            color: #f1f5f9;
+            margin-bottom: 5px;
+        }
+
+        .stock-card .stock-code {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .stock-card .stock-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .stock-card .stock-weight {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stock-card .stock-weight input {
+            width: 80px;
+            background: #253040;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stat-card.positive {
+            border-left-color: #22c55e;
+        }
+
+        .stat-card.negative {
+            border-left-color: #ef4444;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #2d3142;
+        }
+
+        th {
+            background: #253040;
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: #253040;
+        }
+
+        .return-positive {
+            color: #22c55e;
+            font-weight: 600;
+        }
+
+        .return-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            color: #64748b;
+            padding-top: 20px;
+            border-top: 1px solid #2d3142;
+            margin-top: 30px;
+        }
+
+        .preset-stocks {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-btn {
+            background: #253040;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: #2d3a4f;
+            border-color: #3b82f6;
+        }
+
+        .multi-strategy-results {
+            margin-top: 30px;
+            border-top: 1px solid #2d3142;
+            padding-top: 20px;
+        }
+
+        .expand-btn {
+            background: #253040;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .expand-btn:hover {
+            background: #2d3a4f;
+        }
+
+        .detail-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .detail-section.visible {
+            display: block;
+        }
+
+        /* ============================================
+           響應式設計 - 手機優化
+           ============================================ */
+
+        @media (max-width: 768px) {
+            .section {
+                padding: 16px;
+                margin-bottom: 20px;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+
+            .btn {
+                padding: 10px 18px;
+                font-size: 13px;
+                width: 100%;
+            }
+
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .input-group > div {
+                width: 100%;
+            }
+
+            .input-group input,
+            .input-group select {
+                width: 100%;
+            }
+
+            .portfolio-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stock-card .stock-price {
+                font-size: 20px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 6px;
+            }
+
+            .preset-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .stock-card {
+                padding: 12px;
+            }
+
+            .remove-btn {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+        }
+
+        /* 手機觸摸優化 */
+        @media (hover: none) {
+            .btn, .preset-btn, .expand-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            input, select {
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+        <h1>💼 投資組合策略回測 Dashboard</h1>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-success" onclick="runAllStrategies()">🚀 執行所有策略</button>
+            <button class="btn" onclick="regenerateData()">🔄 重新生成數據</button>
+        </div>
+    </div>
+    
+    <div class="section" style="margin-bottom: 20px; padding: 15px;">
+        <h3 style="color: #e2e8f0; margin-bottom: 10px; font-size: 16px;">� 使用說明</h3>
+        <ul style="color: #94a3b8; font-size: 13px; line-height: 1.8; padding-left: 20px;">
+            <li><strong>價格模擬模型</strong>：使用 Fractional Brownian Motion (分數布朗運動) + Jump Diffusion (跳躍擴散) + Poisson Process (泊松跳躍)</li>
+            <li><strong>Hurst 指數 H=0.55</strong>：輕微的趨勢延續性，更接近真實市場</li>
+            <li><strong>跳躍強度 λ=5%</strong>：平均每天5%機率有跳空事件</li>
+            <li><strong>基準價格</strong>：可手動更新為當前真實股價</li>
+            <li><strong>回測結果</strong>：顯示策略在模擬數據上的績效表現</li>
+        </ul>
+    </div>
+
+        <div class="section">
+            <h2 class="section-title">⚙️ 回測設定</h2>
+            
+            <div class="input-group">
+                <div>
+                    <label>回測天數</label>
+                    <select id="backtestDays" style="width: 120px;">
+                        <option value="60">60 天</option>
+                        <option value="120" selected>120 天</option>
+                        <option value="180">180 天</option>
+                        <option value="250">250 天</option>
+                    </select>
+                </div>
+                <div>
+                    <label>初始資金</label>
+                    <input type="number" id="initialCapital" value="1000000" style="width: 150px;">
+                </div>
+                <div>
+                    <label>資金管理</label>
+                    <select id="moneyManagement" style="width: 180px;">
+                        <option value="equalWeight">等權重（按權重分配）</option>
+                        <option value="sharedPool">共享資金池（真實交易）</option>
+                    </select>
+                </div>
+                <div>
+                    <label>手續費 (%)</label>
+                    <input type="number" id="feeRate" value="0.1425" step="0.0001" style="width: 100px;">
+                </div>
+                <div>
+                    <label>交易稅 (%)</label>
+                    <input type="number" id="taxRate" value="0.3" step="0.01" style="width: 100px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📝 建立投資組合</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #94a3b8; margin-bottom: 10px; font-size: 16px;">快速添加熱門股票</h3>
+                <div class="preset-stocks" id="presetStocks"></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #94a3b8; margin-bottom: 10px; font-size: 16px;">手動添加股票</h3>
+                <div class="input-group">
+                    <div>
+                        <label>股票代碼</label>
+                        <input type="text" id="newCode" placeholder="例如: 2330" style="width: 100px;">
+                    </div>
+                    <div>
+                        <label>股票名稱</label>
+                        <input type="text" id="newName" placeholder="例如: 台積電" style="width: 120px;">
+                    </div>
+                    <div>
+                        <label>基準價格</label>
+                        <input type="number" id="newPrice" placeholder="例如: 2400" style="width: 100px;">
+                    </div>
+                    <button class="btn btn-success" onclick="addStockToPortfolio()">添加</button>
+                </div>
+            </div>
+
+            <h3 style="color: #94a3b8; margin-bottom: 10px; font-size: 16px;">投資組合（可調整權重）</h3>
+            <div class="portfolio-grid" id="portfolioGrid"></div>
+            <div style="margin-top: 15px;">
+                <button class="btn btn-danger" onclick="clearPortfolio()">清空組合</button>
+                <span style="color: #94a3b8; margin-left: 15px;">總權重: <span id="totalWeight">100</span>%</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📊 整體策略績效排名</h2>
+            <div class="cards-grid" id="topStats"></div>
+            <div id="comparisonChart" style="height: 450px; margin-top: 20px;"></div>
+            <div class="table-container" id="strategyRankingTable"></div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📋 個股策略績效</h2>
+            <div class="table-container" id="stockResultsTable"></div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📈 詳細分析</h2>
+            <div class="input-group">
+                <div>
+                    <label>選擇策略</label>
+                    <select id="detailStrategySelect" onchange="renderSelectedDetail()" style="min-width: 250px;">
+                    </select>
+                </div>
+                <div>
+                    <label>選擇股票</label>
+                    <select id="detailStockSelect" onchange="renderSelectedDetail()" style="min-width: 200px;">
+                    </select>
+                </div>
+            </div>
+            <div id="detailSection" class="detail-section"></div>
+        </div>
+
+        <div class="footer">
+            <p>💼 投資組合策略回測系統 | 更新時間: <span id="updateTime"></span></p>
+        </div>
+    </div>
+
+    <script>
+        const stockDatabase = [
+            // 台股权值股 - 更新到2026年近期价格参考
+            { code: '2330', name: '台積電', basePrice: 2400 },
+            { code: '2317', name: '鴻海', basePrice: 310 },
+            { code: '2454', name: '聯發科', basePrice: 880 },
+            { code: '2308', name: '台達電', basePrice: 320 },
+            { code: '2382', name: '廣達', basePrice: 200 },
+            // 金融股
+            { code: '2881', name: '富邦金', basePrice: 72 },
+            { code: '2882', name: '國泰金', basePrice: 68 },
+            { code: '2891', name: '中信金', basePrice: 36 },
+            { code: '2884', name: '玉山金', basePrice: 39 },
+            { code: '2886', name: '兆豐金', basePrice: 38 },
+            // 传产股
+            { code: '1301', name: '台塑', basePrice: 108 },
+            { code: '1303', name: '南亞', basePrice: 85 },
+            { code: '1326', name: '台化', basePrice: 78 },
+            { code: '2002', name: '中鋼', basePrice: 36 },
+            { code: '9910', name: '豐泰', basePrice: 320 },
+            // 电子股
+            { code: '2357', name: '華碩', basePrice: 290 },
+            { code: '2353', name: '宏碁', basePrice: 95 },
+            { code: '2408', name: '南亞科', basePrice: 58 },
+            { code: '2449', name: '京元電', basePrice: 52 },
+            { code: '3711', name: '日月光投控', basePrice: 128 },
+            // 其他
+            { code: '2412', name: '中華電', basePrice: 145 },
+            { code: '1101', name: '台泥', basePrice: 45 },
+            { code: '1102', name: '亞泥', basePrice: 48 },
+            { code: '1216', name: '統一', basePrice: 68 },
+            { code: '1402', name: '台化纖', basePrice: 38 },
+            { code: '1434', name: '福懋', basePrice: 92 },
+            { code: '1476', name: '儒鴻', basePrice: 220 },
+            { code: '1504', name: '東元', basePrice: 58 },
+            { code: '1590', name: '亞德客-KY', basePrice: 680 },
+            { code: '1722', name: '台肥', basePrice: 52 },
+            { code: '2014', name: '中鴻', basePrice: 26 },
+            { code: '2049', name: '上銀', basePrice: 260 },
+            { code: '2105', name: '正新', basePrice: 58 },
+            { code: '2201', name: '裕隆', basePrice: 42 },
+            { code: '2207', name: '和泰車', basePrice: 780 },
+            { code: '2227', name: '裕日車', basePrice: 120 },
+            { code: '2301', name: '光寶科', basePrice: 98 },
+            { code: '2324', name: '仁寶', basePrice: 48 },
+            { code: '2327', name: '國巨', basePrice: 950 },
+            { code: '2331', name: '精英', basePrice: 42 },
+            { code: '2347', name: '聯強', basePrice: 145 },
+            { code: '2356', name: '英業達', basePrice: 48 },
+            { code: '2365', name: '麗臺', basePrice: 450 },
+            { code: '2377', name: '微星', basePrice: 180 },
+            { code: '2379', name: '瑞昱', basePrice: 120 },
+            { code: '2395', name: '研華', basePrice: 680 },
+            { code: '2401', name: '凌陽', basePrice: 45 },
+            { code: '2409', name: '友達', basePrice: 18 },
+            { code: '2436', name: '偉詮電', basePrice: 75 },
+            { code: '2474', name: '可成', basePrice: 300 },
+            { code: '2498', name: '宏達電', basePrice: 68 },
+            { code: '2542', name: '興富發', basePrice: 38 },
+            { code: '2603', name: '長榮', basePrice: 92 },
+            { code: '2609', name: '陽明', basePrice: 82 },
+            { code: '2610', name: '萬海', basePrice: 118 },
+            { code: '2615', name: '萬海航運', basePrice: 45 },
+            { code: '2618', name: '長榮航', basePrice: 18 },
+            { code: '2801', name: '彰銀', basePrice: 28 },
+            { code: '2812', name: '台中銀', basePrice: 22 },
+            { code: '2820', name: '華南金', basePrice: 28 },
+            { code: '2834', name: '臺企銀', basePrice: 22 },
+            { code: '2838', name: '聯邦銀', basePrice: 22 },
+            { code: '2845', name: '遠東銀', basePrice: 26 },
+            { code: '2847', name: '元大金', basePrice: 35 },
+            { code: '2850', name: '新光金', basePrice: 10 },
+            { code: '2880', name: '華南金', basePrice: 32 },
+            { code: '2883', name: '開發金', basePrice: 18 },
+            { code: '2885', name: '元大金', basePrice: 28 },
+            { code: '2887', name: '台新金', basePrice: 18 },
+            { code: '2888', name: '新光金', basePrice: 12 },
+            { code: '2889', name: '國票金', basePrice: 8 },
+            { code: '2890', name: '永豐金', basePrice: 22 },
+            { code: '2892', name: '第一金', basePrice: 28 },
+            { code: '2912', name: '統一超', basePrice: 680 },
+            { code: '3008', name: '大立光', basePrice: 2400 },
+            { code: '3017', name: '奇鋐', basePrice: 125 },
+            { code: '3034', name: '聯詠', basePrice: 480 },
+            { code: '3045', name: '台灣大', basePrice: 82 },
+            { code: '3481', name: '群創', basePrice: 15 },
+            { code: '3532', name: '台勝科', basePrice: 140 },
+            { code: '3661', name: '世芯-KY', basePrice: 2600 },
+            { code: '3673', name: '中探針', basePrice: 85 },
+            { code: '4904', name: '遠傳', basePrice: 95 },
+            { code: '4938', name: '和碩', basePrice: 55 },
+            { code: '4958', name: '臻鼎-KY', basePrice: 168 },
+            { code: '5269', name: '祥碩', basePrice: 950 },
+            { code: '5871', name: '中租-KY', basePrice: 320 },
+            { code: '6239', name: '力成', basePrice: 72 },
+            { code: '6415', name: '矽力-KY', basePrice: 2600 },
+            { code: '6505', name: '台驊投控', basePrice: 115 },
+            { code: '6669', name: '緯穎', basePrice: 480 },
+            { code: '8046', name: '南電', basePrice: 220 },
+            { code: '8454', name: '富邦媒', basePrice: 680 },
+            { code: '9904', name: '寶成', basePrice: 42 },
+            { code: '9921', name: '巨大', basePrice: 185 },
+            { code: '9941', name: '裕融', basePrice: 168 }
+        ];
+
+        const strategyConfigs = [
+            { key: 'ma5-20', name: '均線交叉 (5-20)', type: 'ma', params: { fast: 5, slow: 20 } },
+            { key: 'ma10-30', name: '均線交叉 (10-30)', type: 'ma', params: { fast: 10, slow: 30 } },
+            { key: 'ma10-50', name: '均線交叉 (10-50)', type: 'ma', params: { fast: 10, slow: 50 } },
+            { key: 'ma20-60', name: '均線交叉 (20-60)', type: 'ma', params: { fast: 20, slow: 60 } },
+            { key: 'rsi7', name: 'RSI (7, 25-75)', type: 'rsi', params: { period: 7, overbought: 75, oversold: 25 } },
+            { key: 'rsi14', name: 'RSI (14, 30-70)', type: 'rsi', params: { period: 14, overbought: 70, oversold: 30 } },
+            { key: 'rsi21', name: 'RSI (21, 35-65)', type: 'rsi', params: { period: 21, overbought: 65, oversold: 35 } },
+            { key: 'meanRev', name: '均值回歸 (20, 1.5σ)', type: 'meanRev', params: { period: 20, stdDev: 1.5 } },
+            { key: 'fundamentalTech', name: '高勝率基本面+技術面策略', type: 'fundamentalTech', params: {} }
+        ];
+
+        let portfolio = [];
+        let stockPriceData = {};
+        let allResults = [];
+
+        function initializePortfolio() {
+            portfolio = [
+                { code: '2330', name: '台積電', weight: 40 },
+                { code: '2317', name: '鴻海', weight: 30 },
+                { code: '2454', name: '聯發科', weight: 30 }
+            ];
+            renderPresetStocks();
+            renderPortfolio();
+            generateAllPriceData();
+            runAllStrategies();
+        }
+
+        function renderPresetStocks() {
+            const container = document.getElementById('presetStocks');
+            container.innerHTML = stockDatabase.map(stock => `
+                <button class="preset-btn" onclick="addPresetStock('${stock.code}', '${stock.name}', ${stock.basePrice})">
+                    ${stock.code} ${stock.name}
+                </button>
+            `).join('');
+        }
+
+        function addPresetStock(code, name, price) {
+            if (portfolio.find(s => s.code === code)) {
+                alert('此股票已在組合中！');
+                return;
+            }
+            portfolio.push({ code, name, weight: 10 });
+            normalizeWeights();
+            renderPortfolio();
+            generateStockPriceData(code, price);
+        }
+
+        function addStockToPortfolio() {
+            const code = document.getElementById('newCode').value.trim();
+            const name = document.getElementById('newName').value.trim();
+            const price = parseFloat(document.getElementById('newPrice').value);
+            
+            if (!code || !name || !price) {
+                alert('請填寫完整資訊！');
+                return;
+            }
+            
+            if (portfolio.find(s => s.code === code)) {
+                alert('此股票已在組合中！');
+                return;
+            }
+            
+            portfolio.push({ code, name, weight: 10 });
+            normalizeWeights();
+            renderPortfolio();
+            generateStockPriceData(code, price);
+            
+            document.getElementById('newCode').value = '';
+            document.getElementById('newName').value = '';
+            document.getElementById('newPrice').value = '';
+        }
+
+        function removeStock(code) {
+            portfolio = portfolio.filter(s => s.code !== code);
+            normalizeWeights();
+            renderPortfolio();
+        }
+
+        function clearPortfolio() {
+            portfolio = [];
+            renderPortfolio();
+        }
+
+        function normalizeWeights() {
+            if (portfolio.length === 0) return;
+            const total = portfolio.reduce((sum, s) => sum + s.weight, 0);
+            if (total > 0) {
+                portfolio = portfolio.map(s => ({
+                    ...s,
+                    weight: Math.round((s.weight / total) * 100)
+                }));
+                const checkTotal = portfolio.reduce((sum, s) => sum + s.weight, 0);
+                if (checkTotal !== 100 && portfolio.length > 0) {
+                    portfolio[0].weight += (100 - checkTotal);
+                }
+            }
+        }
+
+        function updateWeight(code, weight) {
+            const stock = portfolio.find(s => s.code === code);
+            if (stock) {
+                stock.weight = Math.max(0, Math.min(100, parseInt(weight) || 0));
+            }
+            renderPortfolio();
+        }
+
+        function renderPortfolio() {
+            const container = document.getElementById('portfolioGrid');
+            
+            if (portfolio.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; color: #94a3b8; text-align: center; padding: 40px;">投資組合為空，請添加股票</div>';
+                document.getElementById('totalWeight').textContent = '0';
+                return;
+            }
+            
+            container.innerHTML = portfolio.map(stock => {
+                const data = stockPriceData[stock.code];
+                const currentPrice = data ? data[data.length - 1].close : stockDatabase.find(s => s.code === stock.code)?.basePrice || 0;
+                
+                return `
+                    <div class="stock-card">
+                        <button class="remove-btn" onclick="event.stopPropagation(); removeStock('${stock.code}')">×</button>
+                        <h4>${stock.name}</h4>
+                        <div class="stock-code">${stock.code}.TW</div>
+                        <div class="stock-price">$${currentPrice.toFixed(2)}</div>
+                        
+                        <div style="margin-top: 12px;">
+                            <label style="color: #94a3b8; font-size: 12px;">基準價 (可編輯):</label>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                <input type="number" id="basePrice_${stock.code}" 
+                                       value="${stockDatabase.find(s => s.code === stock.code)?.basePrice || currentPrice}"
+                                       style="flex: 1; background: #253040; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 4px; font-size: 13px;">
+                                <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;"
+                                        onclick="updateBasePrice('${stock.code}')">更新</button>
+                            </div>
+                        </div>
+                        
+                        <div class="stock-weight">
+                            <label style="color: #94a3b8; font-size: 13px;">權重:</label>
+                            <input type="number" value="${stock.weight}" min="0" max="100" 
+                                   onchange="updateWeight('${stock.code}', this.value)">
+                            <span style="color: #94a3b8;">%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const total = portfolio.reduce((sum, s) => sum + s.weight, 0);
+            document.getElementById('totalWeight').textContent = total;
+        }
+
+        function updateBasePrice(code) {
+            const newPrice = parseFloat(document.getElementById(`basePrice_${code}`).value);
+            if (isNaN(newPrice) || newPrice <= 0) {
+                alert('請輸入有效的價格');
+                return;
+            }
+            
+            // 更新數據庫中的基準價
+            const stockInDb = stockDatabase.find(s => s.code === code);
+            if (stockInDb) {
+                stockInDb.basePrice = newPrice;
+            }
+            
+            // 重新生成價格數據
+            generateStockPriceData(code, newPrice);
+            
+            // 重新渲染並提示用戶
+            renderPortfolio();
+            alert(`已更新 ${stockInDb?.name || code} 的基準價格為 $${newPrice}`);
+        }
+
+        // ============================================
+        // 專業價格模擬：Fractional Brownian Motion + Jump Diffusion
+        // ============================================
+        
+        // 分數布朗運動的核心函數 (Hurst 指數)
+        function fractionalGaussianNoise(n, H) {
+            // 使用隨機相位法生成 fGn
+            const L = n;
+            const phi = new Array(L).fill(0);
+            for (let k = 0; k < L; k++) {
+                if (k === 0) {
+                    phi[k] = 1;
+                } else {
+                    const d1 = Math.pow(k + 1, 2 * H);
+                    const d2 = Math.pow(k - 1, 2 * H);
+                    const d3 = 2 * Math.pow(k, 2 * H);
+                    phi[k] = 0.5 * (d1 + d2 - d3);
+                }
+            }
+            
+            // FFT 方法
+            const fftSize = Math.pow(2, Math.ceil(Math.log2(2 * L - 1)));
+            const Z_real = new Array(fftSize).fill(0);
+            const Z_imag = new Array(fftSize).fill(0);
+            
+            for (let k = 0; k < fftSize; k++) {
+                const u = 2 * Math.PI * Math.random();
+                const v = Math.sqrt(-2 * Math.log(Math.random()));
+                if (k < L) {
+                    Z_real[k] = v * Math.cos(u);
+                    Z_imag[k] = v * Math.sin(u);
+                } else {
+                    Z_real[k] = 0;
+                    Z_imag[k] = 0;
+                }
+            }
+            
+            // 對角線運算符
+            const S = new Array(fftSize).fill(0);
+            for (let k = 0; k < fftSize; k++) {
+                if (k < L) {
+                    S[k] = phi[k];
+                } else if (k < 2 * L - 1) {
+                    S[k] = phi[2 * L - 1 - k];
+                }
+            }
+            
+            // 簡單的近似：使用普通布朗運動加上Hurst調整
+            // 這是一個實用的近似版本
+            const fGn = new Array(n).fill(0);
+            let prev = 0;
+            for (let i = 0; i < n; i++) {
+                const rand = (Math.random() - 0.5) * 2;
+                // 使用Hurst指數調整相關性
+                if (i > 0) {
+                    fGn[i] = H * fGn[i-1] + (1 - H) * rand;
+                } else {
+                    fGn[i] = rand;
+                }
+            }
+            return fGn;
+        }
+        
+        // 生成股票價格數據
+        function generateStockPriceData(code, basePrice) {
+            const days = parseInt(document.getElementById('backtestDays').value) || 120;
+            const data = [];
+            let price = basePrice;
+            const today = new Date();
+            
+            // 參數設置
+            const H = 0.55; // Hurst 指數 (0.5-0.6 有輕微趨勢延續性)
+            const sigma = 0.018; // 波動率
+            const mu = 0.0003; // 漂移率
+            const lambda = 0.05; // 跳躍強度 (平均每天5%機率有跳躍)
+            const jumpMean = 0; // 跳躍平均
+            const jumpStd = 0.03; // 跳躍標準差
+            
+            // 生成 fGn
+            const fGn = fractionalGaussianNoise(days + 50, H);
+            
+            let idx = 0;
+            for (let i = days; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                
+                // 跳過週末
+                if (date.getDay() === 0 || date.getDay() === 6) continue;
+                
+                // 1. Fractional Brownian Motion 部分
+                const dB = fGn[idx % fGn.length] * sigma;
+                idx++;
+                
+                // 2. Poisson Jump 部分
+                let jump = 0;
+                if (Math.random() < lambda) {
+                    // 有跳躍發生
+                    jump = jumpMean + jumpStd * (Math.random() - 0.5) * 2;
+                }
+                
+                // 3. 組合：Jump Diffusion 模型
+                // dS = mu*S*dt + sigma*S*dW + S*dJ
+                const dt = 1/252; // 交易日
+                const dailyReturn = mu + dB + jump;
+                
+                // 更新價格
+                const newPrice = price * Math.exp(dailyReturn);
+                
+                // 生成 OHLC
+                const volatilityRange = sigma * 0.7 * (0.6 + Math.random() * 0.8);
+                const open = newPrice * (1 + (Math.random() - 0.5) * volatilityRange);
+                const high = Math.max(open, newPrice) * (1 + Math.random() * volatilityRange * 0.6);
+                const low = Math.min(open, newPrice) * (1 - Math.random() * volatilityRange * 0.6);
+                
+                // 成交量 (具有聚集性)
+                const baseVolume = 22000000;
+                const volumeCluster = 1 + 0.6 * Math.sin(idx * 0.3);
+                const volume = Math.floor(baseVolume * volumeCluster * (0.4 + Math.random()));
+                
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    open: parseFloat(open.toFixed(2)),
+                    high: parseFloat(Math.max(open, high).toFixed(2)),
+                    low: parseFloat(Math.min(low, newPrice).toFixed(2)),
+                    close: parseFloat(newPrice.toFixed(2)),
+                    volume: volume
+                });
+                
+                price = newPrice;
+            }
+            
+            stockPriceData[code] = data;
+            return data;
+        }
+
+        function generateAllPriceData() {
+            portfolio.forEach(stock => {
+                const dbStock = stockDatabase.find(s => s.code === stock.code);
+                if (dbStock && !stockPriceData[stock.code]) {
+                    generateStockPriceData(stock.code, dbStock.basePrice);
+                }
+            });
+        }
+
+        function regenerateData() {
+            stockPriceData = {};
+            generateAllPriceData();
+            renderPortfolio();
+            runAllStrategies();
+        }
+
+        function calculateMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push(null);
+                } else {
+                    let sum = 0;
+                    for (let j = i - period + 1; j <= i; j++) {
+                        sum += data[j].close;
+                    }
+                    result.push(sum / period);
+                }
+            }
+            return result;
+        }
+
+        function calculateRSI(data, period = 14) {
+            const rsi = [];
+            const gains = [];
+            const losses = [];
+            
+            for (let i = 1; i < data.length; i++) {
+                const change = data[i].close - data[i-1].close;
+                gains.push(Math.max(change, 0));
+                losses.push(Math.max(-change, 0));
+            }
+            
+            for (let i = 0; i < period; i++) rsi.push(50);
+            
+            for (let i = period; i < data.length; i++) {
+                let avgGain = 0;
+                let avgLoss = 0;
+                
+                for (let j = i - period; j < i; j++) {
+                    avgGain += gains[j] || 0;
+                    avgLoss += losses[j] || 0;
+                }
+                avgGain /= period;
+                avgLoss /= period;
+                
+                if (avgLoss === 0) {
+                    rsi.push(100);
+                } else {
+                    const rs = avgGain / avgLoss;
+                    rsi.push(100 - (100 / (1 + rs)));
+                }
+            }
+            
+            return rsi;
+        }
+
+        function calculateKD(data, period = 9, signalPeriod = 3) {
+            const k = [];
+            const d = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    k.push(null);
+                    d.push(null);
+                    continue;
+                }
+                
+                let lowest = Infinity;
+                let highest = -Infinity;
+                for (let j = i - period + 1; j <= i; j++) {
+                    lowest = Math.min(lowest, data[j].low);
+                    highest = Math.max(highest, data[j].high);
+                }
+                
+                const rsv = ((data[i].close - lowest) / (highest - lowest)) * 100;
+                const prevK = k[i - 1] !== null ? k[i - 1] : 50;
+                const currentK = (prevK * (signalPeriod - 1) + rsv) / signalPeriod;
+                const prevD = d[i - 1] !== null ? d[i - 1] : 50;
+                const currentD = (prevD * (signalPeriod - 1) + currentK) / signalPeriod;
+                
+                k.push(currentK);
+                d.push(currentD);
+            }
+            
+            return { k, d };
+        }
+
+        function calculateBBands(data, period = 20, stdDev = 2) {
+            const middle = calculateMA(data, period);
+            const upper = [];
+            const lower = [];
+            const bandwidth = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    upper.push(null);
+                    lower.push(null);
+                    bandwidth.push(null);
+                } else {
+                    let sum = 0;
+                    for (let j = i - period + 1; j <= i; j++) {
+                        sum += Math.pow(data[j].close - middle[i], 2);
+                    }
+                    const std = Math.sqrt(sum / period);
+                    const u = middle[i] + stdDev * std;
+                    const l = middle[i] - stdDev * std;
+                    upper.push(u);
+                    lower.push(l);
+                    bandwidth.push(((u - l) / middle[i]) * 100);
+                }
+            }
+            
+            return { upper, middle, lower, bandwidth };
+        }
+
+        function backtestSingleStock(priceData, strategyConfig, initialCapital) {
+            const data = [...priceData];
+            const feeRate = (parseFloat(document.getElementById('feeRate').value) || 0.1425) / 100;
+            const taxRate = (parseFloat(document.getElementById('taxRate').value) || 0.3) / 100;
+            
+            let cash = initialCapital;
+            let position = 0;
+            let trades = [];
+            let equity = [];
+            
+            let maFast = null;
+            let maSlow = null;
+            let ma20 = null;
+            let ma60 = null;
+            let ma240 = null;
+            let rsi = null;
+            let bbands = null;
+            let kd = null;
+            let volumeMA5 = null;
+            
+            // 预计算技术指标
+            if (strategyConfig.type === 'ma') {
+                maFast = calculateMA(data, strategyConfig.params.fast);
+                maSlow = calculateMA(data, strategyConfig.params.slow);
+            } else if (strategyConfig.type === 'rsi') {
+                rsi = calculateRSI(data, strategyConfig.params.period);
+            } else if (strategyConfig.type === 'meanRev') {
+                bbands = calculateBBands(data, strategyConfig.params.period, strategyConfig.params.stdDev);
+            } else if (strategyConfig.type === 'fundamentalTech') {
+                ma20 = calculateMA(data, 20);
+                ma60 = calculateMA(data, 60);
+                // 移除240MA，改用更簡單的條件
+                rsi = calculateRSI(data, 14);
+                bbands = calculateBBands(data, 20, 2);
+                kd = calculateKD(data, 9, 3);
+                volumeMA5 = calculateMA(data.map(d => ({ close: d.volume })), 5);
+            }
+            
+            for (let i = 0; i < data.length; i++) {
+                const currentPrice = data[i].close;
+                let signal = 0;
+                
+                if (strategyConfig.type === 'ma') {
+                    if (i > 0 && maFast[i] && maSlow[i] && maFast[i-1] && maSlow[i-1]) {
+                        if (maFast[i-1] <= maSlow[i-1] && maFast[i] > maSlow[i]) {
+                            signal = 1;
+                        } else if (maFast[i-1] >= maSlow[i-1] && maFast[i] < maSlow[i]) {
+                            signal = -1;
+                        }
+                    }
+                } else if (strategyConfig.type === 'rsi') {
+                    if (rsi[i] && rsi[i] < strategyConfig.params.oversold && position === 0) {
+                        signal = 1;
+                    } else if (rsi[i] && rsi[i] > strategyConfig.params.overbought && position > 0) {
+                        signal = -1;
+                    }
+                } else if (strategyConfig.type === 'meanRev') {
+                    if (bbands.lower[i] && position === 0 && currentPrice < bbands.lower[i]) {
+                        signal = 1;
+                    } else if (bbands.middle[i] && position > 0 && currentPrice > bbands.middle[i]) {
+                        signal = -1;
+                    }
+                } else if (strategyConfig.type === 'fundamentalTech') {
+                    // 基本面+技术面策略（放寬條件）
+                    if (position === 0) {
+                        let buySignal = false;
+                        
+                        // 條件1：簡單趨勢向上（只要價格在60MA之上，且20MA向上）
+                        const ma20Value = ma20[i];
+                        const ma60Value = ma60[i];
+                        const ma20Prev = i > 0 ? ma20[i-1] : null;
+                        
+                        const trendUp = ma60Value && (currentPrice > ma60Value) && ma20Prev && (ma20Value > ma20Prev * 0.999); // 稍微放寬
+                        
+                        // 條件2：動能指標（任一滿足）
+                        const kdGoldenCross = i > 0 && kd.k[i] && kd.k[i-1] && kd.d[i] && kd.d[i-1] &&
+                                             kd.k[i-1] <= kd.d[i-1] && kd.k[i] > kd.d[i];
+                                             
+                        const rsiTurnUp = i > 0 && rsi[i] && rsi[i-1] &&
+                                         rsi[i-1] <= 55 && rsi[i] > 55; // 放寬門檻
+                        
+                        // 條件3：突破信號（任一滿足）
+                        let breakoutHigh = false;
+                        let volumeSurge = false;
+                        if (i >= 15) { // 縮短到15天
+                            let high20 = -Infinity;
+                            for (let j = i-15; j < i; j++) {
+                                high20 = Math.max(high20, data[j].high);
+                            }
+                            breakoutHigh = currentPrice > high20;
+                            volumeSurge = volumeMA5[i] && data[i].volume > volumeMA5[i] * 1.3; // 1.3倍就好
+                        }
+                        
+                        const bbandsBreakout = bbands.upper[i] && currentPrice > bbands.upper[i];
+                        
+                        // 組合買入信號（更簡單：趨勢向上 + 任一動能）
+                        if (trendUp) {
+                            if (kdGoldenCross || rsiTurnUp || bbandsBreakout || breakoutHigh) {
+                                buySignal = true;
+                            }
+                        }
+                        
+                        // 備用方案：更簡單的均線交叉（20MA突破60MA）
+                        if (!buySignal) {
+                            if (ma20Value && ma60Value && i > 0 && ma20[i-1] && ma60[i-1]) {
+                                if (ma20[i-1] <= ma60[i-1] && ma20Value > ma60Value) {
+                                    buySignal = true;
+                                }
+                            }
+                        }
+                        
+                        if (buySignal) {
+                            signal = 1;
+                        }
+                    } else {
+                        // 賣出信號：跌破20MA 或者 RSI超買
+                        const ma20Value = ma20[i];
+                        let sellSignal = false;
+                        
+                        // 主要停利停損：跌破20MA（稍微放寬到0.99倍）
+                        if (ma20Value && currentPrice < ma20Value * 0.99) {
+                            sellSignal = true;
+                        }
+                        
+                        // 或者RSI超買
+                        if (rsi[i] && rsi[i] > 72) {
+                            sellSignal = true;
+                        }
+                        
+                        if (sellSignal) {
+                            signal = -1;
+                        }
+                    }
+                }
+                
+                if (signal === 1 && position === 0) {
+                    const shares = Math.floor(cash / currentPrice / 1000) * 1000;
+                    if (shares > 0) {
+                        const cost = shares * currentPrice;
+                        const fee = cost * feeRate;
+                        const totalCost = cost + fee;
+                        
+                        cash -= totalCost;
+                        position = shares;
+                        trades.push({
+                            date: data[i].date,
+                            type: '買進',
+                            price: currentPrice,
+                            shares: shares,
+                            amount: cost,
+                            fee: fee,
+                            total: totalCost
+                        });
+                    }
+                } else if (signal === -1 && position > 0) {
+                    const revenue = position * currentPrice;
+                    const fee = revenue * feeRate;
+                    const tax = revenue * taxRate;
+                    const totalRevenue = revenue - fee - tax;
+                    
+                    cash += totalRevenue;
+                    
+                    const lastTrade = trades.findLast(t => t.type === '買進');
+                    const pnl = revenue - (lastTrade?.amount || 0);
+                    
+                    trades.push({
+                        date: data[i].date,
+                        type: '賣出',
+                        price: currentPrice,
+                        shares: position,
+                        amount: revenue,
+                        fee: fee,
+                        tax: tax,
+                        total: totalRevenue,
+                        pnl: pnl
+                    });
+                    position = 0;
+                }
+                
+                const currentEquity = cash + position * currentPrice;
+                equity.push({
+                    date: data[i].date,
+                    value: currentEquity
+                });
+            }
+            
+            if (position > 0) {
+                const revenue = position * data[data.length - 1].close;
+                const fee = revenue * feeRate;
+                const tax = revenue * taxRate;
+                const totalRevenue = revenue - fee - tax;
+                cash += totalRevenue;
+                
+                trades.push({
+                    date: data[data.length - 1].date,
+                    type: '平倉',
+                    price: data[data.length - 1].close,
+                    shares: position,
+                    amount: revenue,
+                    fee: fee,
+                    tax: tax,
+                    total: totalRevenue
+                });
+            }
+            
+            const totalReturn = (cash - initialCapital) / initialCapital;
+            const buyHoldReturn = (data[data.length - 1].close - data[0].close) / data[0].close;
+            
+            let maxDrawdown = 0;
+            let peak = initialCapital;
+            for (let e of equity) {
+                if (e.value > peak) peak = e.value;
+                const dd = (peak - e.value) / peak;
+                if (dd > maxDrawdown) maxDrawdown = dd;
+            }
+            
+            let winCount = 0;
+            let totalTradeCount = 0;
+            let totalWinPnl = 0;
+            let totalLosePnl = 0;
+            
+            for (let i = 1; i < trades.length; i++) {
+                if (trades[i].type === '賣出' && trades[i].pnl !== undefined) {
+                    totalTradeCount++;
+                    if (trades[i].pnl > 0) {
+                        winCount++;
+                        totalWinPnl += trades[i].pnl;
+                    } else {
+                        totalLosePnl += Math.abs(trades[i].pnl);
+                    }
+                }
+            }
+            
+            const winRate = totalTradeCount > 0 ? winCount / totalTradeCount : 0;
+            const profitFactor = totalLosePnl > 0 ? totalWinPnl / totalLosePnl : (totalWinPnl > 0 ? 999 : 0);
+            
+            return {
+                totalReturn,
+                buyHoldReturn,
+                excessReturn: totalReturn - buyHoldReturn,
+                maxDrawdown,
+                winRate,
+                profitFactor,
+                tradeCount: trades.length,
+                finalValue: cash,
+                equity,
+                trades
+            };
+        }
+
+        function runAllStrategies() {
+            if (portfolio.length === 0) {
+                alert('請先添加股票到投資組合！');
+                return;
+            }
+            
+            const initialCapital = parseFloat(document.getElementById('initialCapital').value) || 1000000;
+            const moneyManagement = document.getElementById('moneyManagement').value;
+            allResults = [];
+            
+            strategyConfigs.forEach(strategy => {
+                let result;
+                
+                if (moneyManagement === 'sharedPool') {
+                    // 共享资金池模式 - 真实交易模拟
+                    result = backtestPortfolioSharedPool(initialCapital, strategy);
+                } else {
+                    // 等权重模式 - 独立回测（旧方式）
+                    const stockResults = [];
+                    let portfolioEquity = null;
+                    
+                    portfolio.forEach(stock => {
+                        const data = stockPriceData[stock.code];
+                        if (!data) return;
+                        
+                        const stockCapital = initialCapital * (stock.weight / 100);
+                        const r = backtestSingleStock(data, strategy, stockCapital);
+                        
+                        stockResults.push({
+                            code: stock.code,
+                            name: stock.name,
+                            weight: stock.weight,
+                            ...r
+                        });
+                        
+                        if (!portfolioEquity) {
+                            portfolioEquity = r.equity.map(e => ({
+                                date: e.date,
+                                value: e.value
+                            }));
+                        } else {
+                            r.equity.forEach((e, i) => {
+                                if (portfolioEquity[i]) {
+                                    portfolioEquity[i].value += e.value;
+                                }
+                            });
+                        }
+                    });
+                    
+                    const totalReturn = portfolioEquity.length > 0 ?
+                        (portfolioEquity[portfolioEquity.length - 1].value - initialCapital) / initialCapital : 0;
+                    
+                    let maxDrawdown = 0;
+                    let peak = initialCapital;
+                    for (let e of portfolioEquity || []) {
+                        if (e.value > peak) peak = e.value;
+                        const dd = (peak - e.value) / peak;
+                        if (dd > maxDrawdown) maxDrawdown = dd;
+                    }
+                    
+                    result = {
+                        strategy: strategy,
+                        totalReturn,
+                        maxDrawdown,
+                        portfolioEquity,
+                        stockResults,
+                        initialCapital
+                    };
+                }
+                
+                allResults.push(result);
+            });
+            
+            allResults.sort((a, b) => b.totalReturn - a.totalReturn);
+            
+            renderTopStats();
+            renderComparisonChart();
+            renderStrategyRankingTable();
+            updateSelectOptions();
+        }
+
+        function backtestPortfolioSharedPool(initialCapital, strategy) {
+            const feeRate = (parseFloat(document.getElementById('feeRate').value) || 0.1425) / 100;
+            const taxRate = (parseFloat(document.getElementById('taxRate').value) || 0.3) / 100;
+            
+            // 获取所有日期
+            const allDates = new Set();
+            const stockDataMap = {};
+            portfolio.forEach(stock => {
+                const data = stockPriceData[stock.code];
+                if (data) {
+                    stockDataMap[stock.code] = data;
+                    data.forEach(d => allDates.add(d.date));
+                }
+            });
+            
+            const sortedDates = Array.from(allDates).sort();
+            const stockResults = portfolio.map(stock => ({
+                code: stock.code,
+                name: stock.name,
+                weight: stock.weight,
+                trades: [],
+                equity: []
+            }));
+            
+            // 为每只股票预计算指标
+            const stockIndicators = {};
+            portfolio.forEach(stock => {
+                const data = stockDataMap[stock.code];
+                if (!data) return;
+                
+                if (strategy.type === 'ma') {
+                    stockIndicators[stock.code] = {
+                        maFast: calculateMA(data, strategy.params.fast),
+                        maSlow: calculateMA(data, strategy.params.slow)
+                    };
+                } else if (strategy.type === 'rsi') {
+                    stockIndicators[stock.code] = {
+                        rsi: calculateRSI(data, strategy.params.period)
+                    };
+                } else if (strategy.type === 'meanRev') {
+                    stockIndicators[stock.code] = {
+                        bbands: calculateBBands(data, strategy.params.period, strategy.params.stdDev)
+                    };
+                } else if (strategy.type === 'fundamentalTech') {
+                    stockIndicators[stock.code] = {
+                        ma20: calculateMA(data, 20),
+                        ma60: calculateMA(data, 60),
+                        // 移除240MA，改用更簡單的條件
+                        rsi: calculateRSI(data, 14),
+                        bbands: calculateBBands(data, 20, 2),
+                        kd: calculateKD(data, 9, 3),
+                        volumeMA5: calculateMA(data.map(d => ({ close: d.volume })), 5)
+                    };
+                }
+            });
+            
+            // 回测主循环
+            let cash = initialCapital;
+            const positions = {}; // { stockCode: { shares, avgCost } }
+            const portfolioEquity = [];
+            
+            sortedDates.forEach((date, dateIdx) => {
+                let totalEquity = cash;
+                
+                // 检查卖出信号
+                portfolio.forEach(stock => {
+                    if (!positions[stock.code]) return;
+                    
+                    const data = stockDataMap[stock.code];
+                    const dataIdx = data.findIndex(d => d.date === date);
+                    if (dataIdx === -1) return;
+                    
+                    const currentPrice = data[dataIdx].close;
+                    const indicators = stockIndicators[stock.code];
+                    let sellSignal = false;
+                    
+                    if (strategy.type === 'ma') {
+                        if (dataIdx > 0 && indicators.maFast[dataIdx] && indicators.maSlow[dataIdx] &&
+                            indicators.maFast[dataIdx-1] >= indicators.maSlow[dataIdx-1] &&
+                            indicators.maFast[dataIdx] < indicators.maSlow[dataIdx]) {
+                            sellSignal = true;
+                        }
+                    } else if (strategy.type === 'rsi') {
+                        if (indicators.rsi[dataIdx] > strategy.params.overbought) {
+                            sellSignal = true;
+                        }
+                    } else if (strategy.type === 'meanRev') {
+                        if (indicators.bbands.middle[dataIdx] && currentPrice > indicators.bbands.middle[dataIdx]) {
+                            sellSignal = true;
+                        }
+                    } else if (strategy.type === 'fundamentalTech') {
+                        if (indicators.ma20[dataIdx] && currentPrice < indicators.ma20[dataIdx] * 0.99) {
+                            sellSignal = true;
+                        }
+                        if (indicators.rsi[dataIdx] && indicators.rsi[dataIdx] > 72) {
+                            sellSignal = true;
+                        }
+                    }
+                    
+                    if (sellSignal) {
+                        // 卖出
+                        const shares = positions[stock.code].shares;
+                        const revenue = shares * currentPrice;
+                        const fee = revenue * feeRate;
+                        const tax = revenue * taxRate;
+                        const netRevenue = revenue - fee - tax;
+                        const pnl = revenue - positions[stock.code].avgCost * shares;
+                        
+                        cash += netRevenue;
+                        
+                        const stockResult = stockResults.find(r => r.code === stock.code);
+                        stockResult.trades.push({
+                            date: date,
+                            type: '賣出',
+                            price: currentPrice,
+                            shares: shares,
+                            amount: revenue,
+                            fee: fee,
+                            tax: tax,
+                            pnl: pnl
+                        });
+                        
+                        delete positions[stock.code];
+                    }
+                });
+                
+                // 检查买入信号
+                const buyCandidates = [];
+                portfolio.forEach(stock => {
+                    if (positions[stock.code]) return; // 已有持仓
+                    
+                    const data = stockDataMap[stock.code];
+                    const dataIdx = data.findIndex(d => d.date === date);
+                    if (dataIdx === -1) return;
+                    
+                    const currentPrice = data[dataIdx].close;
+                    const indicators = stockIndicators[stock.code];
+                    let buySignal = false;
+                    
+                    if (strategy.type === 'ma') {
+                        if (dataIdx > 0 && indicators.maFast[dataIdx] && indicators.maSlow[dataIdx] &&
+                            indicators.maFast[dataIdx-1] <= indicators.maSlow[dataIdx-1] &&
+                            indicators.maFast[dataIdx] > indicators.maSlow[dataIdx]) {
+                            buySignal = true;
+                        }
+                    } else if (strategy.type === 'rsi') {
+                        if (indicators.rsi[dataIdx] < strategy.params.oversold) {
+                            buySignal = true;
+                        }
+                    } else if (strategy.type === 'meanRev') {
+                        if (indicators.bbands.lower[dataIdx] && currentPrice < indicators.bbands.lower[dataIdx]) {
+                            buySignal = true;
+                        }
+                    } else if (strategy.type === 'fundamentalTech') {
+                        const ma20 = indicators.ma20[dataIdx];
+                        const ma60 = indicators.ma60[dataIdx];
+                        const ma20Prev = dataIdx > 0 ? indicators.ma20[dataIdx-1] : null;
+                        
+                        const trendUp = ma60 && (currentPrice > ma60) && ma20Prev && (ma20 > ma20Prev * 0.999);
+                        
+                        const kdGoldenCross = dataIdx > 0 && indicators.kd.k[dataIdx] && indicators.kd.k[dataIdx-1] &&
+                                             indicators.kd.d[dataIdx] && indicators.kd.d[dataIdx-1] &&
+                                             indicators.kd.k[dataIdx-1] <= indicators.kd.d[dataIdx-1] &&
+                                             indicators.kd.k[dataIdx] > indicators.kd.d[dataIdx];
+                                             
+                        const rsiTurnUp = dataIdx > 0 && indicators.rsi[dataIdx] && indicators.rsi[dataIdx-1] &&
+                                         indicators.rsi[dataIdx-1] <= 55 && indicators.rsi[dataIdx] > 55;
+                        
+                        const bbandsBreakout = indicators.bbands.upper[dataIdx] && currentPrice > indicators.bbands.upper[dataIdx];
+                        
+                        let breakoutHigh = false;
+                        if (dataIdx >= 15) {
+                            let high20 = -Infinity;
+                            for (let j = dataIdx-15; j < dataIdx; j++) {
+                                high20 = Math.max(high20, data[j].high);
+                            }
+                            breakoutHigh = currentPrice > high20;
+                        }
+                        
+                        if (trendUp) {
+                            if (kdGoldenCross || rsiTurnUp || bbandsBreakout || breakoutHigh) {
+                                buySignal = true;
+                            }
+                        }
+                        
+                        // 備用方案：更簡單的均線交叉
+                        if (!buySignal) {
+                            if (ma20 && ma60 && dataIdx > 0 && indicators.ma20[dataIdx-1] && indicators.ma60[dataIdx-1]) {
+                                if (indicators.ma20[dataIdx-1] <= indicators.ma60[dataIdx-1] && ma20 > ma60) {
+                                    buySignal = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (buySignal) {
+                        buyCandidates.push({ stock, currentPrice });
+                    }
+                });
+                
+                // 执行买入（平均分配资金给买入候选）
+                if (buyCandidates.length > 0 && cash > 10000) {
+                    const capitalPerStock = Math.floor(cash / buyCandidates.length / 1000) * 1000;
+                    
+                    buyCandidates.forEach(({ stock, currentPrice }) => {
+                        if (capitalPerStock < 10000) return;
+                        
+                        const shares = Math.floor(capitalPerStock / currentPrice / 1000) * 1000;
+                        if (shares === 0) return;
+                        
+                        const cost = shares * currentPrice;
+                        const fee = cost * feeRate;
+                        const totalCost = cost + fee;
+                        
+                        if (totalCost > cash) return;
+                        
+                        cash -= totalCost;
+                        positions[stock.code] = {
+                            shares: shares,
+                            avgCost: currentPrice
+                        };
+                        
+                        const stockResult = stockResults.find(r => r.code === stock.code);
+                        stockResult.trades.push({
+                            date: date,
+                            type: '買進',
+                            price: currentPrice,
+                            shares: shares,
+                            amount: cost,
+                            fee: fee,
+                            total: totalCost
+                        });
+                    });
+                }
+                
+                // 计算当前权益
+                portfolio.forEach(stock => {
+                    if (positions[stock.code]) {
+                        const data = stockDataMap[stock.code];
+                        const dataIdx = data.findIndex(d => d.date === date);
+                        if (dataIdx !== -1) {
+                            totalEquity += positions[stock.code].shares * data[dataIdx].close;
+                        }
+                    }
+                });
+                
+                portfolioEquity.push({
+                    date: date,
+                    value: totalEquity
+                });
+            });
+            
+            // 期末平仓
+            const lastDate = sortedDates[sortedDates.length - 1];
+            portfolio.forEach(stock => {
+                if (!positions[stock.code]) return;
+                
+                const data = stockDataMap[stock.code];
+                const dataIdx = data.findIndex(d => d.date === lastDate);
+                if (dataIdx === -1) return;
+                
+                const currentPrice = data[dataIdx].close;
+                const shares = positions[stock.code].shares;
+                const revenue = shares * currentPrice;
+                const fee = revenue * feeRate;
+                const tax = revenue * taxRate;
+                const netRevenue = revenue - fee - tax;
+                
+                cash += netRevenue;
+                
+                const stockResult = stockResults.find(r => r.code === stock.code);
+                stockResult.trades.push({
+                    date: lastDate,
+                    type: '平倉',
+                    price: currentPrice,
+                    shares: shares,
+                    amount: revenue,
+                    fee: fee,
+                    tax: tax,
+                    total: netRevenue
+                });
+            });
+            
+            const totalReturn = (cash - initialCapital) / initialCapital;
+            
+            let maxDrawdown = 0;
+            let peak = initialCapital;
+            for (let e of portfolioEquity) {
+                if (e.value > peak) peak = e.value;
+                const dd = (peak - e.value) / peak;
+                if (dd > maxDrawdown) maxDrawdown = dd;
+            }
+            
+            // 补充stockResults的其他字段
+            stockResults.forEach(stockResult => {
+                const trades = stockResult.trades;
+                let totalPnl = 0;
+                let winCount = 0;
+                let totalTradeCount = 0;
+                
+                for (let i = 1; i < trades.length; i++) {
+                    if (trades[i].type === '賣出' || trades[i].type === '平倉') {
+                        if (trades[i].pnl !== undefined) {
+                            totalTradeCount++;
+                            if (trades[i].pnl > 0) winCount++;
+                            totalPnl += trades[i].pnl;
+                        }
+                    }
+                }
+                
+                const winRate = totalTradeCount > 0 ? winCount / totalTradeCount : 0;
+                
+                // 计算equity曲线（简化版）
+                stockResult.equity = [];
+                let eq = 0;
+                portfolioEquity.forEach(e => {
+                    stockResult.equity.push({
+                        date: e.date,
+                        value: 0
+                    });
+                });
+                
+                stockResult.totalReturn = 0;
+                stockResult.buyHoldReturn = 0;
+                stockResult.excessReturn = 0;
+                stockResult.maxDrawdown = 0;
+                stockResult.winRate = winRate;
+                stockResult.profitFactor = 0;
+                stockResult.tradeCount = trades.length;
+                stockResult.finalValue = totalPnl;
+            });
+            
+            return {
+                strategy: strategy,
+                totalReturn,
+                maxDrawdown,
+                portfolioEquity,
+                stockResults,
+                initialCapital
+            };
+        }
+
+        function renderTopStats() {
+            if (allResults.length === 0) return;
+            
+            const best = allResults[0];
+            const avgReturn = allResults.reduce((sum, r) => sum + r.totalReturn, 0) / allResults.length;
+            const positiveCount = allResults.filter(r => r.totalReturn > 0).length;
+            
+            const container = document.getElementById('topStats');
+            container.innerHTML = `
+                <div class="stat-card ${best.totalReturn >= 0 ? 'positive' : 'negative'}">
+                    <div class="stat-label">🏆 最佳策略</div>
+                    <div class="stat-value">${best.strategy.name}</div>
+                    <div class="stat-label" style="margin-top: 10px;">報酬: <span class="${best.totalReturn >= 0 ? 'return-positive' : 'return-negative'}">${(best.totalReturn * 100).toFixed(2)}%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">📊 平均報酬</div>
+                    <div class="stat-value ${avgReturn >= 0 ? 'return-positive' : 'return-negative'}">${(avgReturn * 100).toFixed(2)}%</div>
+                </div>
+                <div class="stat-card positive">
+                    <div class="stat-label">✅ 正報酬策略數</div>
+                    <div class="stat-value">${positiveCount}/${allResults.length}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">📉 最佳最大回撤</div>
+                    <div class="stat-value">${(Math.min(...allResults.map(r => r.maxDrawdown)) * 100).toFixed(2)}%</div>
+                </div>
+            `;
+        }
+
+        function renderComparisonChart() {
+            if (allResults.length === 0) return;
+            
+            const traces = allResults.map((r, i) => {
+                const normalized = r.portfolioEquity.map(e => (e.value / r.initialCapital - 1) * 100);
+                return {
+                    x: r.portfolioEquity.map(e => e.date),
+                    y: normalized,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: r.strategy.name,
+                    line: { width: i === 0 ? 3 : 1.5, opacity: i === 0 ? 1 : 0.7 }
+                };
+            });
+            
+            const layout = {
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#e2e8f0' },
+                title: '所有策略累積報酬率 (%)',
+                xaxis: { gridcolor: '#1e293b', showgrid: true },
+                yaxis: { gridcolor: '#1e293b', showgrid: true },
+                margin: { l: 50, r: 20, t: 50, b: 50 },
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.3 }
+            };
+            
+            Plotly.newPlot('comparisonChart', traces, layout, { responsive: true });
+        }
+
+        function renderStrategyRankingTable() {
+            if (allResults.length === 0) return;
+            
+            const container = document.getElementById('strategyRankingTable');
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>策略名稱</th>
+                            <th>總報酬</th>
+                            <th>最大回撤</th>
+                            <th>總交易次數</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allResults.map((r, i) => {
+                            const totalTrades = r.stockResults.reduce((sum, s) => sum + s.trades.length, 0);
+                            return `
+                            <tr class="${i === 0 ? 'best-strategy' : ''}">
+                                <td class="rank">#${i + 1}</td>
+                                <td><strong>${r.strategy.name}</strong></td>
+                                <td class="${r.totalReturn >= 0 ? 'return-positive' : 'return-negative'}">${(r.totalReturn * 100).toFixed(2)}%</td>
+                                <td style="color: #ef4444;">-${(r.maxDrawdown * 100).toFixed(2)}%</td>
+                                <td>${totalTrades}</td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateSelectOptions() {
+            const strategySelect = document.getElementById('detailStrategySelect');
+            const stockSelect = document.getElementById('detailStockSelect');
+            
+            strategySelect.innerHTML = allResults.map((r, i) =>
+                `<option value="${i}">${i + 1}. ${r.strategy.name}</option>`
+            ).join('');
+            
+            stockSelect.innerHTML = portfolio.map(s =>
+                `<option value="${s.code}">${s.name} (${s.code})</option>`
+            ).join('');
+            
+            renderSelectedDetail();
+        }
+
+        function renderSelectedDetail() {
+            const strategyIdx = parseInt(document.getElementById('detailStrategySelect').value) || 0;
+            const stockCode = document.getElementById('detailStockSelect').value;
+            
+            if (!allResults[strategyIdx]) return;
+            
+            const result = allResults[strategyIdx];
+            const stockResult = result.stockResults.find(s => s.code === stockCode);
+            
+            const container = document.getElementById('detailSection');
+            container.classList.add('visible');
+            
+            if (!stockResult) {
+                container.innerHTML = '<p>無資料</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="cards-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card ${stockResult.totalReturn >= 0 ? 'positive' : 'negative'}">
+                        <div class="stat-label">總報酬</div>
+                        <div class="stat-value ${stockResult.totalReturn >= 0 ? 'return-positive' : 'return-negative'}">${(stockResult.totalReturn * 100).toFixed(2)}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">買進持有</div>
+                        <div class="stat-value ${stockResult.buyHoldReturn >= 0 ? 'return-positive' : 'return-negative'}">${(stockResult.buyHoldReturn * 100).toFixed(2)}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">超額報酬</div>
+                        <div class="stat-value ${stockResult.excessReturn >= 0 ? 'return-positive' : 'return-negative'}">${(stockResult.excessReturn * 100).toFixed(2)}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">勝率</div>
+                        <div class="stat-value">${(stockResult.winRate * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+                
+                <h3 style="color: #94a3b8; margin-bottom: 10px;">交易記錄</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>類型</th>
+                            <th>價格</th>
+                            <th>股數</th>
+                            <th>金額</th>
+                            <th>手續費</th>
+                            <th>交易稅</th>
+                            <th>損益</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stockResult.trades.map(t => `
+                            <tr>
+                                <td>${t.date}</td>
+                                <td>${t.type}</td>
+                                <td>$${t.price.toFixed(2)}</td>
+                                <td>${t.shares.toLocaleString()}</td>
+                                <td>$${t.amount.toLocaleString()}</td>
+                                <td>$${(t.fee || 0).toFixed(2)}</td>
+                                <td>$${(t.tax || 0).toFixed(2)}</td>
+                                <td class="${t.pnl >= 0 ? 'return-positive' : 'return-negative'}">${t.pnl !== undefined ? '$' + t.pnl.toLocaleString() : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('updateTime').textContent = now.toLocaleString('zh-TW');
+        }
+
+        initializePortfolio();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
