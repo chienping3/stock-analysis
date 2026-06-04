@@ -90,17 +90,19 @@ def run_analysis_for_stock(stock_code: str, stock_name: str) -> dict | None:
         return None
 
 
-def daily_job():
-    """Main scheduled job: analyze all configured stocks."""
+def daily_job() -> dict:
+    """Main scheduled job: analyze all configured stocks. Returns summary dict."""
     logger.info("=" * 60)
     logger.info("Daily analysis started")
+    total = len(config.SCHEDULE_STOCKS)
     success = 0
     for stock in config.SCHEDULE_STOCKS:
         result = run_analysis_for_stock(stock["code"], stock["name"])
         if result:
             success += 1
-    logger.info(f"Daily analysis done — {success}/{len(config.SCHEDULE_STOCKS)} OK")
+    logger.info(f"Daily analysis done — {success}/{total} OK")
     logger.info("=" * 60)
+    return {"stocks_ok": success, "stocks_total": total}
 
 
 def create_scheduler() -> BackgroundScheduler:

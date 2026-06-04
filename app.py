@@ -45,10 +45,14 @@ def _track_daily_job():
     global _last_run_info
     _last_run_info["time"] = datetime.now().isoformat()
     try:
-        daily_job()
+        result = daily_job()
         _last_run_info["status"] = "success"
+        _last_run_info["stocks_ok"] = result.get("stocks_ok", 0)
+        _last_run_info["stocks_total"] = result.get("stocks_total", 0)
     except Exception as exc:
         _last_run_info["status"] = f"failed: {exc}"
+        _last_run_info["stocks_ok"] = 0
+        _last_run_info["stocks_total"] = 0
         logger.exception("Scheduled job failed")
 
 
