@@ -101,7 +101,7 @@ def daily_job() -> dict:
         result = run_analysis_for_stock(stock["code"], stock["name"])
         if result:
             success += 1
-        time.sleep(2)  # 避免 TWSE 速率限制
+        time.sleep(5)  # 避免 TWSE 速率限制
     logger.info(f"Daily analysis done — {success}/{total} OK")
     logger.info("=" * 60)
     return {"stocks_ok": success, "stocks_total": total}
