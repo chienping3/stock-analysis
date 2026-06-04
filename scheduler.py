@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime, date
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -40,7 +41,7 @@ def run_analysis_for_stock(stock_code: str, stock_name: str) -> dict | None:
 
     try:
         fetcher = TWSEDataFetcher()
-        df = fetcher.get_historical_data(stock_code, years=config.YEARS_BACK)
+        df = fetcher.get_historical_data_cached(stock_code, years=config.YEARS_BACK)
 
         if df is None or len(df) < 100:
             logger.warning(f"{stock_code}: insufficient data, skipping")
@@ -100,6 +101,7 @@ def daily_job() -> dict:
         result = run_analysis_for_stock(stock["code"], stock["name"])
         if result:
             success += 1
+        time.sleep(2)  # 避免 TWSE 速率限制
     logger.info(f"Daily analysis done — {success}/{total} OK")
     logger.info("=" * 60)
     return {"stocks_ok": success, "stocks_total": total}
